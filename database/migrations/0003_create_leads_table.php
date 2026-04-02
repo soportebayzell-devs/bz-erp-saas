@@ -12,7 +12,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('assigned_to')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignUuid('student_id')->nullable()->constrained('students')->nullOnDelete();
+            $table->uuid('student_id')->nullable();
 
             // Personal info
             $table->string('first_name');
