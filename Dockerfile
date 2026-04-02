@@ -5,7 +5,9 @@ FROM composer:2.7 AS vendor
 
 WORKDIR /app
 
-COPY composer.json composer.lock ./
+# Copy composer files — lock is optional (generated on first build if missing)
+COPY composer.json ./
+COPY composer.lock* ./
 
 RUN composer install \
     --no-dev \
@@ -23,24 +25,9 @@ RUN composer dump-autoload \
 
 
 # ─────────────────────────────────────────────
-# Stage 2: Node / Vite build (frontend assets)
-# Skip this stage if you have no frontend yet
-# ─────────────────────────────────────────────
-FROM node:20-alpine AS frontend
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --ignore-scripts
-
-COPY . .
-COPY --from=vendor /app/vendor ./vendor
-
-RUN npm run build
-
-
-# ─────────────────────────────────────────────
-# Stage 3: Final PHP-FPM image
+# Stage 2: Final PHP-FPM image
+# (Frontend/Vite stage omitted — add back when
+#  React frontend is scaffolded in Phase 1)
 # ─────────────────────────────────────────────
 FROM php:8.3-fpm-alpine AS app
 
@@ -55,7 +42,6 @@ RUN apk add --no-cache \
     libzip-dev \
     oniguruma-dev \
     postgresql-dev \
-    redis \
     shadow \
     supervisor \
     unzip \
@@ -76,31 +62,38 @@ RUN docker-php-ext-configure gd --with-jpeg --with-webp \
 # Redis PHP extension (PECL)
 RUN pecl install redis && docker-php-ext-enable redis
 
-# PHP ini tweaks for production
+# PHP ini tweaks
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-app.ini
 
-# Create a non-root user that nginx can share
+# Non-root user
 RUN addgroup -g 1000 -S www && adduser -u 1000 -S www -G www
 
 WORKDIR /var/www
 
-# Copy app code
+# Copy full app code from build context
 COPY --chown=www:www . .
 
 # Vendor from Stage 1
 COPY --chown=www:www --from=vendor /app/vendor ./vendor
 
-# Built assets from Stage 2 (comment out if no frontend yet)
-# COPY --chown=www:www --from=frontend /app/public/build ./public/build
-
-# Directories Laravel needs to write to
-RUN mkdir -p storage/framework/{cache,sessions,views} \
-             storage/logs \
-             bootstrap/cache \
- && chown -R www:www storage bootstrap/cache \
+# Ensure all required Laravel directories exist
+RUN mkdir -p \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+        public \
+ && chown -R www:www storage bootstrap/cache public \
  && chmod -R 775 storage bootstrap/cache
 
-# Supervisor manages php-fpm + horizon in a single container
+# Ensure public/index.php exists (Laravel entry point)
+# If it was not in the repo, create a placeholder that explains the issue clearly
+RUN if [ ! -f public/index.php ]; then \
+        echo "<?php echo 'Laravel bootstrap missing — run setup.sh first.'; die(1);" > public/index.php; \
+    fi
+
+# Supervisor: php-fpm + horizon
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 USER www
