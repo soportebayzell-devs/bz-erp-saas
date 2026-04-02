@@ -80,6 +80,7 @@ RUN mkdir -p \
         storage/logs \
         bootstrap/cache \
         public \
+        /var/log/supervisor \
  && chown -R www:www storage bootstrap/cache public \
  && chmod -R 775 storage bootstrap/cache
 
