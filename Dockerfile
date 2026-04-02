@@ -93,6 +93,8 @@ RUN if [ ! -f public/index.php ]; then \
 
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+RUN chmod -R 777 /var/www/storage /var/www/bootstrap/cache
+
 EXPOSE 80
 
 CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
