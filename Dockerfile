@@ -40,6 +40,7 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     libwebp-dev \
     libzip-dev \
+    nginx \
     oniguruma-dev \
     postgresql-dev \
     shadow \
@@ -64,6 +65,8 @@ RUN apk add --no-cache --virtual .phpize-deps $PHPIZE_DEPS \
     && apk del .phpize-deps
 
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-app.ini
+
+COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
 
 RUN addgroup -g 1000 -S www && adduser -u 1000 -S www -G www
 
@@ -90,6 +93,6 @@ RUN if [ ! -f public/index.php ]; then \
 
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-EXPOSE 9000
+EXPOSE 80
 
 CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
