@@ -76,6 +76,8 @@ COPY --chown=www:www . .
 
 COPY --chown=www:www --from=vendor /app/vendor ./vendor
 
+RUN rm -f bootstrap/cache/packages.php bootstrap/cache/config.php bootstrap/cache/routes-v7.php
+
 RUN mkdir -p \
         storage/framework/cache/data \
         storage/framework/sessions \
