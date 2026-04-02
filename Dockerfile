@@ -58,7 +58,10 @@ RUN docker-php-ext-configure gd --with-jpeg --with-webp \
         pcntl \
         zip
 
-RUN pecl install redis && docker-php-ext-enable redis
+RUN apk add --no-cache --virtual .phpize-deps $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .phpize-deps
 
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-app.ini
 
